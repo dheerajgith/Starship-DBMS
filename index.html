@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>STARSHIP DB
+  MS — Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+/* ── DESIGN TOKENS ─────────────────────────── */
+:root {
+  --bg:        #050810;
+  --panel:     #080d1a;
+  --card:      #0b1222;
+  --border:    #1a2a4a;
+  --border2:   #243554;
+  --accent:    #00d4ff;
+  --accent2:   #ff6b35;
+  --accent3:   #7fff6f;
+  --accent4:   #ffd700;
+  --text:      #c8d8f0;
+  --muted:     #4a6080;
+  --danger:    #ff3b5c;
+  --success:   #00e676;
+  --warning:   #ffab40;
+  --font-head: 'Orbitron', monospace;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --glow:      0 0 20px rgba(0,212,255,.35);
+  --glow2:     0 0 20px rgba(255,107,53,.35);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── STARFIELD ─────────────────────────────── */
+#stars {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 30%, #0a1535 0%, #050810 60%);
+}
+#stars::before, #stars::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 40% 25%, rgba(255,255,255,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 10%, rgba(255,255,255,.7) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 50%, rgba(255,255,255,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 40%, rgba(200,220,255,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 75%, rgba(255,255,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 35%, rgba(255,255,255,.3) 0%, transparent 100%);
+  background-size: 100% 100%;
+}
+#stars::after {
+  animation: twinkle 4s ease-in-out infinite alternate;
+  opacity: .6;
+}
+@keyframes twinkle {
+  0%   { opacity: .4; }
+  100% { opacity: .9; }
+}
+
+/* ── LAYOUT ────────────────────────────────── */
+#app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── TOPBAR ────────────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem;
+  height: 64px;
+  background: rgba(8,13,26,.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: .75rem;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), #0066ff);
+  clip-path: polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
+  box-shadow: var(--glow);
+  animation: pulse-logo 3s ease-in-out infinite;
+}
+@keyframes pulse-logo {
+  0%,100% { box-shadow: var(--glow); }
+  50%     { box-shadow: 0 0 35px rgba(0,212,255,.6); }
+}
+.logo-text { font-family: var(--font-head); font-size: 1rem; font-weight: 800; letter-spacing: .15em; color: var(--accent); }
+.logo-sub  { font-family: var(--font-mono); font-size: .6rem; color: var(--muted); letter-spacing: .2em; }
+
+.status-bar { display: flex; align-items: center; gap: 1rem; }
+.status-pill {
+  font-family: var(--font-mono); font-size: .7rem; letter-spacing: .1em;
+  padding: .25rem .75rem; border-radius: 100px;
+  border: 1px solid;
+}
+.pill-live  { color: var(--success); border-color: var(--success); background: rgba(0,230,118,.08); }
+.pill-api   { color: var(--accent);  border-color: var(--accent);  background: rgba(0,212,255,.08); }
+
+/* ── NAV ───────────────────────────────────── */
+nav {
+  display: flex; gap: 0;
+  padding: 0 2rem;
+  background: rgba(8,13,26,.7);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+nav::-webkit-scrollbar { height: 2px; }
+nav::-webkit-scrollbar-track { background: transparent; }
+nav::-webkit-scrollbar-thumb { background: var(--accent); }
+
+.nav-btn {
+  font-family: var(--font-head); font-size: .65rem; font-weight: 600;
+  letter-spacing: .15em; color: var(--muted);
+  padding: 1rem 1.25rem;
+  border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+  white-space: nowrap;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── MAIN ──────────────────────────────────── */
+main { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+/* ── SECTION HEADER ────────────────────────── */
+.sec-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.sec-title {
+  font-family: var(--font-head); font-size: 1.1rem; font-weight: 800;
+  letter-spacing: .2em; color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,212,255,.4);
+}
+.sec-title span { color: var(--muted); font-weight: 400; font-size: .75rem; margin-left: .5rem; }
+
+/* ── DASHBOARD ──────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  position: relative; overflow: hidden;
+  transition: border-color .2s, transform .2s;
+  cursor: default;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-c, var(--accent)), transparent);
+}
+.stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.stat-label { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); letter-spacing: .15em; margin-bottom: .5rem; }
+.stat-val   { font-family: var(--font-head); font-size: 2rem; font-weight: 900; color: var(--text); line-height: 1; }
+.stat-icon  { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 1.8rem; opacity: .15; }
+
+/* ── GRID ───────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem; }
+@media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+/* ── CARD ───────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--border2); }
+.card-title {
+  font-family: var(--font-head); font-size: .7rem; font-weight: 700;
+  letter-spacing: .15em; color: var(--accent); margin-bottom: 1rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.card-title::before {
+  content: ''; display: block; width: 3px; height: 14px;
+  background: var(--accent); border-radius: 2px;
+}
+
+/* ── MISSION TABLE ──────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-family: var(--font-mono); font-size: .65rem; letter-spacing: .1em;
+  color: var(--muted); text-align: left; padding: .6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: .75rem 1rem; border-bottom: 1px solid rgba(26,42,74,.5);
+  font-size: .9rem; vertical-align: middle;
+}
+tr { transition: background .15s; }
+tr:hover td { background: rgba(255,255,255,.02); }
+
+/* ── BADGES ─────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em;
+  padding: .2rem .6rem; border-radius: 4px; font-weight: 600;
+  text-transform: uppercase; white-space: nowrap;
+}
+.badge-planned    { background: rgba(255,212,0,.12); color: var(--accent4); border: 1px solid rgba(255,212,0,.3); }
+.badge-active     { background: rgba(0,230,118,.12); color: var(--success); border: 1px solid rgba(0,230,118,.3); }
+.badge-completed  { background: rgba(0,212,255,.12); color: var(--accent);  border: 1px solid rgba(0,212,255,.3); }
+.badge-maintenance{ background: rgba(255,107,53,.12); color: var(--accent2); border: 1px solid rgba(255,107,53,.3); }
+.badge-retired    { background: rgba(255,59,92,.12); color: var(--danger);  border: 1px solid rgba(255,59,92,.3); }
+.badge-abort      { background: rgba(255,59,92,.12); color: var(--danger);  border: 1px solid rgba(255,59,92,.3); }
+.badge-success    { background: rgba(0,230,118,.12); color: var(--success); border: 1px solid rgba(0,230,118,.3); }
+
+/* ── BUTTONS ─────────────────────────────────── */
+.btn {
+  font-family: var(--font-head); font-size: .6rem; font-weight: 700;
+  letter-spacing: .15em; padding: .55rem 1.25rem; border-radius: 6px;
+  border: 1px solid; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.btn-primary {
+  background: rgba(0,212,255,.1); color: var(--accent); border-color: var(--accent);
+}
+.btn-primary:hover { background: rgba(0,212,255,.2); box-shadow: var(--glow); }
+.btn-danger {
+  background: rgba(255,59,92,.08); color: var(--danger); border-color: var(--danger);
+}
+.btn-danger:hover { background: rgba(255,59,92,.18); }
+.btn-success {
+  background: rgba(0,230,118,.08); color: var(--success); border-color: var(--success);
+}
+.btn-success:hover { background: rgba(0,230,118,.18); }
+.btn-sm { padding: .3rem .75rem; font-size: .55rem; }
+.btn-icon { padding: .35rem .5rem; font-size: .8rem; line-height: 1; }
+
+/* ── FORMS ───────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } }
+
+.form-group { display: flex; flex-direction: column; gap: .4rem; }
+.form-group.full { grid-column: 1/-1; }
+
+label {
+  font-family: var(--font-mono); font-size: .62rem; color: var(--muted);
+  letter-spacing: .12em; text-transform: uppercase;
+}
+input, select, textarea {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text);
+  font-family: var(--font-body); font-size: .9rem;
+  padding: .55rem .85rem;
+  transition: border-color .2s, box-shadow .2s;
+  outline: none; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,212,255,.15);
+}
+select option { background: #0b1222; }
+textarea { resize: vertical; min-height: 80px; }
+
+/* ── MODAL ───────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(5,8,16,.85); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 1rem;
+}
+.modal-overlay.open { display: flex; animation: fade-in .2s; }
+@keyframes fade-in { from { opacity: 0; } }
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 12px; padding: 2rem;
+  width: 100%; max-width: 640px; max-height: 90vh;
+  overflow-y: auto;
+  animation: slide-up .25s ease;
+}
+@keyframes slide-up { from { opacity: 0; transform: translateY(20px); } }
+.modal::-webkit-scrollbar { width: 4px; }
+.modal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
+}
+.modal-title { font-family: var(--font-head); font-size: .85rem; font-weight: 700; color: var(--accent); letter-spacing: .15em; }
+.modal-close { font-size: 1.3rem; color: var(--muted); cursor: pointer; line-height: 1; transition: color .15s; }
+.modal-close:hover { color: var(--text); }
+
+.modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+
+/* ── DETAIL VIEW ─────────────────────────────── */
+.detail-hero {
+  background: linear-gradient(135deg, rgba(0,212,255,.06), rgba(0,102,255,.04));
+  border: 1px solid var(--border2);
+  border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.detail-name { font-family: var(--font-head); font-size: 1.4rem; font-weight: 900; color: #fff; margin-bottom: .5rem; }
+.detail-meta { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.meta-item { font-family: var(--font-mono); font-size: .7rem; color: var(--muted); }
+.meta-item span { color: var(--text); }
+
+.section-sub { font-family: var(--font-head); font-size: .65rem; font-weight: 700; letter-spacing: .2em; color: var(--accent2); margin-bottom: .75rem; }
+
+.crew-list, .payload-list { display: flex; flex-direction: column; gap: .5rem; }
+.crew-item, .payload-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  border-radius: 6px; padding: .65rem 1rem;
+  transition: border-color .15s;
+}
+.crew-item:hover, .payload-item:hover { border-color: var(--border2); }
+.crew-name  { font-weight: 600; color: var(--text); }
+.crew-role  { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); }
+.payload-name { font-weight: 600; }
+.payload-org  { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); }
+
+.attempt-timeline { display: flex; flex-direction: column; gap: .5rem; }
+.attempt-item {
+  display: flex; align-items: center; gap: 1rem;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  border-radius: 6px; padding: .65rem 1rem;
+}
+.attempt-num { font-family: var(--font-head); font-size: .9rem; font-weight: 800; color: var(--muted); width: 1.5rem; }
+.attempt-info { flex: 1; }
+.attempt-date    { font-family: var(--font-mono); font-size: .7rem; color: var(--text); }
+.attempt-weather { font-size: .8rem; color: var(--muted); }
+
+/* ── MAINTENANCE ─────────────────────────────── */
+.maint-list { display: flex; flex-direction: column; gap: .5rem; }
+.maint-item {
+  background: rgba(255,107,53,.03);
+  border: 1px solid rgba(255,107,53,.15);
+  border-radius: 6px; padding: .75rem 1rem;
+}
+.maint-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .25rem; }
+.maint-id     { font-family: var(--font-mono); font-size: .65rem; color: var(--accent2); }
+.maint-date   { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); }
+.maint-desc   { font-size: .9rem; color: var(--text); margin-bottom: .2rem; }
+.maint-eng    { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); }
+
+/* ── EMPTY STATE ─────────────────────────────── */
+.empty {
+  text-align: center; padding: 3rem 1rem;
+  font-family: var(--font-mono); color: var(--muted); font-size: .8rem; letter-spacing: .1em;
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .4; }
+
+/* ── TOAST ───────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 2rem; right: 2rem; z-index: 300;
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.toast-item {
+  font-family: var(--font-mono); font-size: .75rem; letter-spacing: .08em;
+  padding: .75rem 1.25rem; border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--border2);
+  animation: toast-in .3s ease; max-width: 320px;
+}
+.toast-ok  { border-left: 3px solid var(--success); }
+.toast-err { border-left: 3px solid var(--danger); }
+@keyframes toast-in { from { opacity:0; transform:translateX(30px); } }
+
+/* ── LOADING ─────────────────────────────────── */
+.loading {
+  display: flex; align-items: center; justify-content: center; gap: .75rem;
+  padding: 2rem; color: var(--muted); font-family: var(--font-mono); font-size: .75rem;
+}
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SCROLLBAR ───────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── TABS ────────────────────────────────────── */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.tab {
+  font-family: var(--font-mono); font-size: .65rem; letter-spacing: .12em;
+  color: var(--muted); padding: .6rem 1.1rem; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all .15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── SEARCH ──────────────────────────────────── */
+.search-bar {
+  display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem;
+}
+.search-bar input { max-width: 300px; }
+
+/* ── STARSHIP CARD ───────────────────────────── */
+.vehicle-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap: 1rem; }
+.vehicle-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.25rem;
+  transition: border-color .2s, transform .2s;
+  cursor: pointer;
+}
+.vehicle-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.vc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .75rem; }
+.vc-id     { font-family: var(--font-head); font-size: .75rem; color: var(--accent); font-weight: 700; }
+.vc-serial { font-family: var(--font-mono); font-size: 1rem; color: var(--text); font-weight: 600; margin-bottom: .25rem; }
+.vc-meta   { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); }
+.vc-stats  { display: flex; gap: 1rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.vc-stat   { text-align: center; }
+.vc-stat-val { font-family: var(--font-head); font-size: .9rem; font-weight: 700; color: var(--text); }
+.vc-stat-lbl { font-family: var(--font-mono); font-size: .55rem; color: var(--muted); }
+
+/* ── PROGRESS BAR ────────────────────────────── */
+.progress { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .5s; }
+
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div id="app">
+
+<!-- ── HEADER ────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <div>
+      <div class="logo-text">STARSHIP DBMS</div>
+      <div class="logo-sub">MISSION MANAGEMENT SYSTEM</div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-pill pill-live" id="db-pill">● DB LIVE</div>
+    <div class="status-pill pill-api" id="api-pill">API :5000</div>
+  </div>
+</header>
+
+<!-- ── NAV ──────────────────────────────────── -->
+<nav>
+  <button class="nav-btn active" onclick="showPage('dashboard')">DASHBOARD</button>
+  <button class="nav-btn" onclick="showPage('missions')">MISSIONS</button>
+  <button class="nav-btn" onclick="showPage('starships')">STARSHIPS</button>
+  <button class="nav-btn" onclick="showPage('boosters')">BOOSTERS</button>
+  <button class="nav-btn" onclick="showPage('crew')">CREW</button>
+  <button class="nav-btn" onclick="showPage('payloads')">PAYLOADS</button>
+  <button class="nav-btn" onclick="showPage('launchsites')">LAUNCH SITES</button>
+</nav>
+
+<!-- ── MAIN ─────────────────────────────────── -->
+<main id="main-content"></main>
+
+</div>
+
+<!-- ── TOAST CONTAINER ──────────────────────── -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+    MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Create Mission Modal -->
+<div class="modal-overlay" id="modal-mission">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">CREATE MISSION</div>
+      <div class="modal-close" onclick="closeModal('modal-mission')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Mission Name *</label>
+        <input id="mn-name" placeholder="e.g. Mars Ascent I"/>
+      </div>
+      <div class="form-group">
+        <label>Mission Type</label>
+        <select id="mn-type">
+          <option value="Lunar">Lunar</option>
+          <option value="Satellite">Satellite</option>
+          <option value="Interplanetary">Interplanetary</option>
+          <option value="Science">Science</option>
+          <option value="Crewed">Crewed</option>
+          <option value="Test">Test</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Orbit Type</label>
+        <select id="mn-orbit">
+          <option value="LEO">LEO</option>
+          <option value="GEO">GEO</option>
+          <option value="Polar">Polar</option>
+          <option value="Lunar">Lunar</option>
+          <option value="TMI">TMI (Mars)</option>
+          <option value="HEO">HEO</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Launch Date</label>
+        <input id="mn-date" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="mn-status">
+          <option value="Planned">Planned</option>
+          <option value="Active">Active</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Starship</label>
+        <select id="mn-starship"><option value="">— None —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Booster</label>
+        <select id="mn-booster"><option value="">— None —</option></select>
+      </div>
+      <div class="form-group full">
+        <label>Launch Site</label>
+        <select id="mn-site"><option value="">— None —</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-mission')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitMission()">LAUNCH MISSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Crew Modal -->
+<div class="modal-overlay" id="modal-crew">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ADD CREW MEMBER</div>
+      <div class="modal-close" onclick="closeModal('modal-crew')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name *</label>
+        <input id="cr-first" placeholder="Elena"/>
+      </div>
+      <div class="form-group">
+        <label>Last Name *</label>
+        <input id="cr-last" placeholder="Vasquez"/>
+      </div>
+      <div class="form-group">
+        <label>Nationality</label>
+        <input id="cr-nat" placeholder="USA"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="cr-role">
+          <option>Commander</option><option>Pilot</option>
+          <option>Engineer</option><option>Scientist</option>
+          <option>Medic</option><option>Mission Specialist</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Experience (years)</label>
+        <input id="cr-exp" type="number" min="0" value="0"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-crew')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitCrew()">ADD CREW</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Payload Modal -->
+<div class="modal-overlay" id="modal-payload">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ADD PAYLOAD</div>
+      <div class="modal-close" onclick="closeModal('modal-payload')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Payload Name *</label>
+        <input id="pl-name" placeholder="e.g. Starlink V2 Batch"/>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input id="pl-weight" type="number" min="0" placeholder="1000"/>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="pl-type">
+          <option>Satellite</option><option>Rover</option>
+          <option>Habitat</option><option>Sensor</option>
+          <option>Cargo</option><option>Experimental</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Owner Organization</label>
+        <input id="pl-owner" placeholder="e.g. NASA, ESA, SpaceX"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-payload')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitPayload()">ADD PAYLOAD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Crew to Mission Modal -->
+<div class="modal-overlay" id="modal-assign-crew">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ASSIGN CREW TO MISSION</div>
+      <div class="modal-close" onclick="closeModal('modal-assign-crew')">✕</div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Select Crew Member</label>
+      <select id="ac-crew"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-assign-crew')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitAssignCrew()">ASSIGN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Payload to Mission Modal -->
+<div class="modal-overlay" id="modal-assign-payload">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ASSIGN PAYLOAD TO MISSION</div>
+      <div class="modal-close" onclick="closeModal('modal-assign-payload')">✕</div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Select Payload</label>
+      <select id="ap-payload"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-assign-payload')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitAssignPayload()">ASSIGN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Launch Attempt Modal -->
+<div class="modal-overlay" id="modal-attempt">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">LOG LAUNCH ATTEMPT</div>
+      <div class="modal-close" onclick="closeModal('modal-attempt')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Attempt Date</label>
+        <input id="at-date" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Outcome</label>
+        <select id="at-outcome">
+          <option>Success</option><option>Abort</option>
+          <option>Failure</option><option>Partial</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Weather Condition</label>
+        <input id="at-weather" placeholder="Clear, Thunderstorm, Partly Cloudy…"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-attempt')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitAttempt()">LOG ATTEMPT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Maintenance Modal -->
+<div class="modal-overlay" id="modal-maint">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">LOG MAINTENANCE</div>
+      <div class="modal-close" onclick="closeModal('modal-maint')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input id="mt-date" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Engineer Name</label>
+        <input id="mt-eng" placeholder="Dr. Kim"/>
+      </div>
+      <div class="form-group full">
+        <label>Description *</label>
+        <textarea id="mt-desc" placeholder="Describe maintenance work…"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-maint')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitMaintenance()">LOG RECORD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Starship Modal -->
+<div class="modal-overlay" id="modal-starship">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">REGISTER STARSHIP</div>
+      <div class="modal-close" onclick="closeModal('modal-starship')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Serial Number *</label>
+        <input id="ss-serial" placeholder="SN-30"/>
+      </div>
+      <div class="form-group">
+        <label>Build Date</label>
+        <input id="ss-date" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="ss-status">
+          <option>Active</option><option>Maintenance</option><option>Retired</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Total Flights</label>
+        <input id="ss-flights" type="number" min="0" value="0"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-starship')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitStarship()">REGISTER</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Launch Site Modal -->
+<div class="modal-overlay" id="modal-site">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ADD LAUNCH SITE</div>
+      <div class="modal-close" onclick="closeModal('modal-site')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Site Name *</label>
+        <input id="ls-name" placeholder="e.g. Starbase"/>
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input id="ls-city" placeholder="Boca Chica"/>
+      </div>
+      <div class="form-group">
+        <label>Country</label>
+        <input id="ls-country" placeholder="USA"/>
+      </div>
+      <div class="form-group">
+        <label>Capacity (launches/yr)</label>
+        <input id="ls-cap" type="number" min="0" value="10"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('modal-site')">CANCEL</button>
+      <button class="btn btn-success" onclick="submitSite()">ADD SITE</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     APP JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+const API = '';   // relative URLs – will use the same scheme/host/port as the page
+let currentPage = 'dashboard';
+let currentMissionId = null;
+let currentStarshipId = null;
+let allCrewCache = [];
+let allPayloadsCache = [];
+
+// ── API ─────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  try {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API + path, opts);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    toast('API Error: ' + e.message, 'err');
+    throw e;
+  }
+}
+
+// ── TOAST ───────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── MODAL ───────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── BADGE ───────────────────────────────────
+function badge(val, cls) {
+  if (!val) return '<span class="badge badge-planned">—</span>';
+  const map = {
+    'Planned':'planned','Active':'active','Completed':'completed',
+    'Maintenance':'maintenance','Retired':'retired',
+    'Success':'success','Abort':'abort','Failure':'abort','Partial':'maintenance'
+  };
+  const c = cls || map[val] || 'planned';
+  return `<span class="badge badge-${c}">${val}</span>`;
+}
+
+// ── PAGE ROUTER ─────────────────────────────
+function showPage(page, ...args) {
+  currentPage = page;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim().toLowerCase().replace(' ','') === page.toLowerCase());
+  });
+  const pages = {
+    dashboard: renderDashboard,
+    missions:  renderMissions,
+    mission_detail: () => renderMissionDetail(args[0]),
+    starships: renderStarships,
+    starship_detail: () => renderStarshipDetail(args[0]),
+    boosters:  renderBoosters,
+    crew:      renderCrew,
+    payloads:  renderPayloads,
+    launchsites: renderLaunchSites,
+  };
+  (pages[page] || renderDashboard)();
+}
+
+function loading() {
+  document.getElementById('main-content').innerHTML =
+    `<div class="loading"><div class="spinner"></div>LOADING DATA…</div>`;
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+async function renderDashboard() {
+  loading();
+  const s = await api('/stats');
+  const rate = s.attempts ? Math.round((s.successes / s.attempts) * 100) : 0;
+  const byStatus = {};
+  (s.by_status || []).forEach(r => byStatus[r.STATUS] = r.c);
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">MISSION CONTROL <span>// OVERVIEW</span></div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="--accent-c: var(--accent)" onclick="showPage('missions')" style="cursor:pointer">
+        <div class="stat-label">TOTAL MISSIONS</div>
+        <div class="stat-val">${s.missions}</div>
+        <div class="stat-icon">🚀</div>
+      </div>
+      <div class="stat-card" style="--accent-c: var(--accent2)">
+        <div class="stat-label">STARSHIPS</div>
+        <div class="stat-val">${s.starships}</div>
+        <div class="stat-icon">🛸</div>
+      </div>
+      <div class="stat-card" style="--accent-c: var(--accent3)">
+        <div class="stat-label">CREW MEMBERS</div>
+        <div class="stat-val">${s.crew}</div>
+        <div class="stat-icon">👨‍🚀</div>
+      </div>
+      <div class="stat-card" style="--accent-c: var(--accent4)">
+        <div class="stat-label">PAYLOADS</div>
+        <div class="stat-val">${s.payloads}</div>
+        <div class="stat-icon">📦</div>
+      </div>
+      <div class="stat-card" style="--accent-c: var(--success)">
+        <div class="stat-label">LAUNCH SUCCESS</div>
+        <div class="stat-val">${rate}%</div>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-card" style="--accent-c: var(--muted)">
+        <div class="stat-label">ATTEMPTS</div>
+        <div class="stat-val">${s.attempts}</div>
+        <div class="stat-icon">🎯</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">MISSION STATUS BREAKDOWN</div>
+        ${['Planned','Active','Completed'].map(st => `
+          <div style="margin-bottom:.75rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <span style="font-family:var(--font-mono);font-size:.7rem">${st}</span>
+              <span style="font-family:var(--font-head);font-size:.8rem;font-weight:700">${byStatus[st]||0}</span>
+            </div>
+            <div class="progress">
+              <div class="progress-fill" style="width:${s.missions ? Math.round(((byStatus[st]||0)/s.missions)*100) : 0}%;background:${st==='Completed'?'var(--accent)':st==='Active'?'var(--success)':'var(--accent4)'}"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card">
+        <div class="card-title">LAUNCH PERFORMANCE</div>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:var(--font-mono);font-size:.7rem">Total Attempts</span>
+            <span style="font-family:var(--font-head);font-size:1rem;font-weight:800">${s.attempts}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:var(--font-mono);font-size:.7rem">Successful</span>
+            <span style="font-family:var(--font-head);font-size:1rem;font-weight:800;color:var(--success)">${s.successes}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:var(--font-mono);font-size:.7rem">Failed / Aborted</span>
+            <span style="font-family:var(--font-head);font-size:1rem;font-weight:800;color:var(--danger)">${s.attempts - s.successes}</span>
+          </div>
+          <div style="margin-top:.5rem">
+            <div class="progress" style="height:8px">
+              <div class="progress-fill" style="width:${rate}%;background:linear-gradient(90deg,var(--success),var(--accent))"></div>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);margin-top:.25rem;text-align:right">${rate}% success rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+// MISSIONS LIST
+// ══════════════════════════════════════════
+async function renderMissions() {
+  loading();
+  const missions = await api('/missions');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">MISSIONS <span>// ${missions.length} RECORDS</span></div>
+      <button class="btn btn-success" onclick="openCreateMission()">+ CREATE MISSION</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>MISSION NAME</th><th>TYPE</th><th>ORBIT</th>
+              <th>LAUNCH DATE</th><th>STARSHIP</th><th>SITE</th><th>STATUS</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${missions.map(m => `
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted)">${m.MISSIONID}</span></td>
+                <td><strong style="color:var(--text)">${m.MISSIONNAME}</strong></td>
+                <td><span style="font-family:var(--font-mono);font-size:.75rem">${m.MISSIONTYPE||'—'}</span></td>
+                <td><span style="font-family:var(--font-mono);font-size:.75rem;color:var(--accent)">${m.ORBITTYPE||'—'}</span></td>
+                <td><span style="font-family:var(--font-mono);font-size:.75rem">${m.LAUNCHDATE||'TBD'}</span></td>
+                <td><span style="font-family:var(--font-mono);font-size:.75rem;color:var(--accent2)">${m.starship_serial||'—'}</span></td>
+                <td><span style="font-size:.85rem">${m.site_name||'—'}</span></td>
+                <td>${badge(m.STATUS)}</td>
+                <td><button class="btn btn-sm btn-primary" onclick="showPage('mission_detail','${m.MISSIONID}')">VIEW</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function openCreateMission() {
+  const [starships, boosters, sites] = await Promise.all([
+    api('/starships'), api('/boosters'), api('/launchsites')
+  ]);
+  const sel = (id, arr, vid, vlabel) =>
+    arr.map(r => `<option value="${r[vid]}">${r[vlabel]}</option>`).join('');
+
+  document.getElementById('mn-starship').innerHTML = '<option value="">— None —</option>' + sel('mn-starship', starships, 'STARSHIPID', 'SERIALNUMBER');
+  document.getElementById('mn-booster').innerHTML  = '<option value="">— None —</option>' + sel('mn-booster',  boosters,  'BOOSTERID',  'SERIALNUMBER');
+  document.getElementById('mn-site').innerHTML     = '<option value="">— None —</option>' + sel('mn-site',    sites,    'SITEID',     'SITENAME');
+  document.getElementById('mn-date').value = new Date().toISOString().slice(0,10);
+  openModal('modal-mission');
+}
+
+async function submitMission() {
+  const name = document.getElementById('mn-name').value.trim();
+  if (!name) { toast('Mission name required','err'); return; }
+  const body = {
+    missionname:  name,
+    missiontype:  document.getElementById('mn-type').value,
+    orbittype:    document.getElementById('mn-orbit').value,
+    launchdate:   document.getElementById('mn-date').value,
+    status:       document.getElementById('mn-status').value,
+    starshipid:   document.getElementById('mn-starship').value || null,
+    boosterid:    document.getElementById('mn-booster').value  || null,
+    siteid:       document.getElementById('mn-site').value     || null,
+  };
+  const r = await api('/missions','POST', body);
+  toast(`Mission created: ${r.id}`);
+  closeModal('modal-mission');
+  document.getElementById('mn-name').value = '';
+  renderMissions();
+}
+
+// ══════════════════════════════════════════
+// MISSION DETAIL
+// ══════════════════════════════════════════
+async function renderMissionDetail(mid) {
+  loading();
+  currentMissionId = mid;
+  const m = await api(`/missions/${mid}`);
+
+  document.getElementById('main-content').innerHTML = `
+    <div style="margin-bottom:1rem">
+      <button class="btn btn-sm btn-primary" onclick="showPage('missions')">← BACK</button>
+    </div>
+
+    <div class="detail-hero">
+      <div class="detail-name">${m.MISSIONNAME}</div>
+      <div class="detail-meta">
+        ${badge(m.STATUS)}
+        <div class="meta-item">TYPE: <span>${m.MISSIONTYPE||'—'}</span></div>
+        <div class="meta-item">ORBIT: <span style="color:var(--accent)">${m.ORBITTYPE||'—'}</span></div>
+        <div class="meta-item">DATE: <span>${m.LAUNCHDATE||'TBD'}</span></div>
+        <div class="meta-item">SITE: <span>${m.site_name||'—'}</span></div>
+      </div>
+      <div style="margin-top:.75rem;display:flex;gap:1.5rem;flex-wrap:wrap">
+        <div class="meta-item">STARSHIP: <span style="color:var(--accent2)">${m.starship_serial||'—'}</span></div>
+        <div class="meta-item">BOOSTER: <span style="color:var(--accent2)">${m.booster_serial||'—'}</span></div>
+        <div class="meta-item">ID: <span style="font-family:var(--font-mono)">${m.MISSIONID}</span></div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:1.5rem">
+      <!-- CREW -->
+      <div class="card">
+        <div class="card-title">CREW MANIFEST</div>
+        <div class="crew-list" id="crew-list">
+          ${m.crew.length ? m.crew.map(c => `
+            <div class="crew-item">
+              <div>
+                <div class="crew-name">${c.FIRSTNAME} ${c.LASTNAME}</div>
+                <div class="crew-role">${c.ROLE||'—'} · ${c.NATIONALITY||''} · ${c.EXPERIENCEYEARS}yr exp</div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="removeCrew('${mid}','${c.CREWID}')">✕</button>
+            </div>
+          `).join('') : '<div class="empty"><div class="empty-icon">👨‍🚀</div>No crew assigned</div>'}
+        </div>
+        <div style="margin-top:.75rem">
+          <button class="btn btn-sm btn-primary" onclick="openAssignCrew('${mid}')">+ ASSIGN CREW</button>
+        </div>
+      </div>
+
+      <!-- PAYLOADS -->
+      <div class="card">
+        <div class="card-title">PAYLOAD MANIFEST</div>
+        <div class="payload-list" id="payload-list">
+          ${m.payloads.length ? m.payloads.map(p => `
+            <div class="payload-item">
+              <div>
+                <div class="payload-name">${p.PAYLOADNAME}</div>
+                <div class="payload-org">${p.TYPE||'—'} · ${p.WEIGHT ? p.WEIGHT.toLocaleString()+'kg' : '—'} · ${p.OWNERORGANIZATION||'—'}</div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="removePayload('${mid}','${p.PAYLOADID}')">✕</button>
+            </div>
+          `).join('') : '<div class="empty"><div class="empty-icon">📦</div>No payloads assigned</div>'}
+        </div>
+        <div style="margin-top:.75rem">
+          <button class="btn btn-sm btn-primary" onclick="openAssignPayload('${mid}')">+ ASSIGN PAYLOAD</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAUNCH ATTEMPTS -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title" style="justify-content:space-between;display:flex;align-items:center">
+        <span style="display:flex;align-items:center;gap:.5rem">
+          <span style="width:3px;height:14px;background:var(--accent);border-radius:2px;display:inline-block"></span>
+          LAUNCH ATTEMPTS
+        </span>
+        <button class="btn btn-sm btn-primary" onclick="openLogAttempt('${mid}')">+ LOG ATTEMPT</button>
+      </div>
+      <div class="attempt-timeline">
+        ${m.attempts.length ? m.attempts.map(a => `
+          <div class="attempt-item">
+            <div class="attempt-num">#${a.ATTEMPTNUMBER}</div>
+            <div class="attempt-info">
+              <div class="attempt-date">${a.ATTEMPTDATE||'—'}</div>
+              <div class="attempt-weather">⛅ ${a.WEATHERCONDITION||'—'}</div>
+            </div>
+            ${badge(a.OUTCOME)}
+          </div>
+        `).join('') : '<div class="empty"><div class="empty-icon">🎯</div>No attempts logged</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function openAssignCrew(mid) {
+  allCrewCache = await api('/crew');
+  document.getElementById('ac-crew').innerHTML =
+    allCrewCache.map(c => `<option value="${c.CREWID}">${c.FIRSTNAME} ${c.LASTNAME} (${c.ROLE||'—'})</option>`).join('');
+  openModal('modal-assign-crew');
+}
+
+async function submitAssignCrew() {
+  const crewid = document.getElementById('ac-crew').value;
+  await api(`/missions/${currentMissionId}/crew`, 'POST', { crewid });
+  toast('Crew assigned');
+  closeModal('modal-assign-crew');
+  renderMissionDetail(currentMissionId);
+}
+
+async function removeCrew(mid, cid) {
+  await api(`/missions/${mid}/crew/${cid}`, 'DELETE');
+  toast('Crew removed');
+  renderMissionDetail(mid);
+}
+
+async function openAssignPayload(mid) {
+  allPayloadsCache = await api('/payloads');
+  document.getElementById('ap-payload').innerHTML =
+    allPayloadsCache.map(p => `<option value="${p.PAYLOADID}">${p.PAYLOADNAME} (${p.TYPE||'—'})</option>`).join('');
+  openModal('modal-assign-payload');
+}
+
+async function submitAssignPayload() {
+  const payloadid = document.getElementById('ap-payload').value;
+  await api(`/missions/${currentMissionId}/payloads`, 'POST', { payloadid });
+  toast('Payload assigned');
+  closeModal('modal-assign-payload');
+  renderMissionDetail(currentMissionId);
+}
+
+async function removePayload(mid, pid) {
+  await api(`/missions/${mid}/payloads/${pid}`, 'DELETE');
+  toast('Payload removed');
+  renderMissionDetail(mid);
+}
+
+function openLogAttempt(mid) {
+  document.getElementById('at-date').value = new Date().toISOString().slice(0,10);
+  openModal('modal-attempt');
+}
+
+async function submitAttempt() {
+  const body = {
+    attemptdate:      document.getElementById('at-date').value,
+    outcome:          document.getElementById('at-outcome').value,
+    weathercondition: document.getElementById('at-weather').value,
+  };
+  await api(`/missions/${currentMissionId}/attempts`, 'POST', body);
+  toast('Launch attempt logged');
+  closeModal('modal-attempt');
+  renderMissionDetail(currentMissionId);
+}
+
+// ══════════════════════════════════════════
+// STARSHIPS
+// ══════════════════════════════════════════
+async function renderStarships() {
+  loading();
+  const ships = await api('/starships');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">STARSHIPS <span>// ${ships.length} VEHICLES</span></div>
+      <button class="btn btn-success" onclick="openModal('modal-starship')">+ REGISTER</button>
+    </div>
+    <div class="vehicle-grid">
+      ${ships.map(s => `
+        <div class="vehicle-card" onclick="showPage('starship_detail','${s.STARSHIPID}')">
+          <div class="vc-header">
+            <div>
+              <div class="vc-id">${s.STARSHIPID}</div>
+              <div class="vc-serial">${s.SERIALNUMBER}</div>
+            </div>
+            ${badge(s.STATUS)}
+          </div>
+          <div class="vc-meta">Built: ${s.BUILDDATE||'—'}</div>
+          <div class="vc-stats">
+            <div class="vc-stat">
+              <div class="vc-stat-val" style="color:var(--accent)">${s.TOTALFLIGHTS}</div>
+              <div class="vc-stat-lbl">FLIGHTS</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function submitStarship() {
+  const serial = document.getElementById('ss-serial').value.trim();
+  if (!serial) { toast('Serial number required','err'); return; }
+  await api('/starships','POST',{
+    serialnumber: serial,
+    builddate: document.getElementById('ss-date').value,
+    status: document.getElementById('ss-status').value,
+    totalflights: parseInt(document.getElementById('ss-flights').value)||0,
+  });
+  toast('Starship registered');
+  closeModal('modal-starship');
+  renderStarships();
+}
+
+async function renderStarshipDetail(sid) {
+  loading();
+  currentStarshipId = sid;
+  const [ships, maint] = await Promise.all([
+    api('/starships'),
+    api(`/starships/${sid}/maintenance`)
+  ]);
+  const s = ships.find(x => x.STARSHIPID === sid);
+  if (!s) { toast('Starship not found','err'); return; }
+
+  document.getElementById('main-content').innerHTML = `
+    <div style="margin-bottom:1rem">
+      <button class="btn btn-sm btn-primary" onclick="showPage('starships')">← BACK</button>
+    </div>
+    <div class="detail-hero" style="background:linear-gradient(135deg,rgba(255,107,53,.06),rgba(255,107,53,.02))">
+      <div class="detail-name">${s.SERIALNUMBER}</div>
+      <div class="detail-meta">
+        ${badge(s.STATUS)}
+        <div class="meta-item">ID: <span style="font-family:var(--font-mono)">${s.STARSHIPID}</span></div>
+        <div class="meta-item">BUILT: <span>${s.BUILDDATE||'—'}</span></div>
+        <div class="meta-item">FLIGHTS: <span style="color:var(--accent);font-family:var(--font-head);font-size:1rem;font-weight:800">${s.TOTALFLIGHTS}</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex;align-items:center">
+        <span style="display:flex;align-items:center;gap:.5rem">
+          <span style="width:3px;height:14px;background:var(--accent2);border-radius:2px;display:inline-block"></span>
+          MAINTENANCE HISTORY
+        </span>
+        <button class="btn btn-sm" style="color:var(--accent2);border-color:var(--accent2);background:rgba(255,107,53,.08)" onclick="openLogMaintenance('${sid}')">+ LOG RECORD</button>
+      </div>
+      <div class="maint-list">
+        ${maint.length ? maint.map(r => `
+          <div class="maint-item">
+            <div class="maint-header">
+              <span class="maint-id">MAINT-${String(r.MAINT_ID).padStart(3,'0')}</span>
+              <span class="maint-date">${r.MAINT_DATE||'—'}</span>
+            </div>
+            <div class="maint-desc">${r.MAINT_DESC||'—'}</div>
+            <div class="maint-eng">Engineer: ${r.ENGINEERNAME||'—'}</div>
+          </div>
+        `).join('') : '<div class="empty"><div class="empty-icon">🔧</div>No maintenance records</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function openLogMaintenance(sid) {
+  currentStarshipId = sid;
+  document.getElementById('mt-date').value = new Date().toISOString().slice(0,10);
+  openModal('modal-maint');
+}
+
+async function submitMaintenance() {
+  const desc = document.getElementById('mt-desc').value.trim();
+  if (!desc) { toast('Description required','err'); return; }
+  await api(`/starships/${currentStarshipId}/maintenance`, 'POST', {
+    maint_date:   document.getElementById('mt-date').value,
+    maint_desc:   desc,
+    engineername: document.getElementById('mt-eng').value,
+  });
+  toast('Maintenance logged');
+  closeModal('modal-maint');
+  document.getElementById('mt-desc').value = '';
+  renderStarshipDetail(currentStarshipId);
+}
+
+// ══════════════════════════════════════════
+// BOOSTERS
+// ══════════════════════════════════════════
+async function renderBoosters() {
+  loading();
+  const boosters = await api('/boosters');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">BOOSTERS <span>// ${boosters.length} UNITS</span></div>
+    </div>
+    <div class="vehicle-grid">
+      ${boosters.map(b => `
+        <div class="vehicle-card">
+          <div class="vc-header">
+            <div>
+              <div class="vc-id">${b.BOOSTERID}</div>
+              <div class="vc-serial">${b.SERIALNUMBER}</div>
+            </div>
+            ${badge(b.STATUS)}
+          </div>
+          <div class="vc-meta">Built: ${b.BUILDDATE||'—'}</div>
+          <div class="vc-stats">
+            <div class="vc-stat">
+              <div class="vc-stat-val" style="color:var(--accent2)">${b.THRUSTCAPACITY ? b.THRUSTCAPACITY.toLocaleString() : '—'}</div>
+              <div class="vc-stat-lbl">kN THRUST</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+// CREW
+// ══════════════════════════════════════════
+async function renderCrew() {
+  loading();
+  const crew = await api('/crew');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">CREW ROSTER <span>// ${crew.length} MEMBERS</span></div>
+      <button class="btn btn-success" onclick="openModal('modal-crew')">+ ADD MEMBER</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>NAME</th><th>NATIONALITY</th><th>ROLE</th><th>EXPERIENCE</th></tr>
+          </thead>
+          <tbody>
+            ${crew.map(c => `
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted)">${c.CREWID}</span></td>
+                <td><strong>${c.FIRSTNAME} ${c.LASTNAME}</strong></td>
+                <td><span style="font-size:.85rem">${c.NATIONALITY||'—'}</span></td>
+                <td><span class="badge badge-planned">${c.ROLE||'—'}</span></td>
+                <td><span style="font-family:var(--font-head);font-size:.85rem;font-weight:700;color:var(--accent)">${c.EXPERIENCEYEARS} <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);font-weight:400">YRS</span></span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function submitCrew() {
+  const first = document.getElementById('cr-first').value.trim();
+  const last  = document.getElementById('cr-last').value.trim();
+  if (!first || !last) { toast('Name required','err'); return; }
+  await api('/crew','POST',{
+    firstname: first, lastname: last,
+    nationality: document.getElementById('cr-nat').value,
+    role: document.getElementById('cr-role').value,
+    experienceyears: parseInt(document.getElementById('cr-exp').value)||0,
+  });
+  toast('Crew member added');
+  closeModal('modal-crew');
+  document.getElementById('cr-first').value = '';
+  document.getElementById('cr-last').value  = '';
+  renderCrew();
+}
+
+// ══════════════════════════════════════════
+// PAYLOADS
+// ══════════════════════════════════════════
+async function renderPayloads() {
+  loading();
+  const payloads = await api('/payloads');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">PAYLOADS <span>// ${payloads.length} ITEMS</span></div>
+      <button class="btn btn-success" onclick="openModal('modal-payload')">+ ADD PAYLOAD</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>NAME</th><th>TYPE</th><th>WEIGHT (kg)</th><th>OWNER</th></tr>
+          </thead>
+          <tbody>
+            ${payloads.map(p => `
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:.7rem;color:var(--muted)">${p.PAYLOADID}</span></td>
+                <td><strong>${p.PAYLOADNAME}</strong></td>
+                <td><span class="badge badge-completed">${p.TYPE||'—'}</span></td>
+                <td><span style="font-family:var(--font-head);font-size:.85rem;font-weight:700">${p.WEIGHT ? p.WEIGHT.toLocaleString() : '—'}</span></td>
+                <td><span style="font-size:.85rem;color:var(--muted)">${p.OWNERORGANIZATION||'—'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function submitPayload() {
+  const name = document.getElementById('pl-name').value.trim();
+  if (!name) { toast('Payload name required','err'); return; }
+  await api('/payloads','POST',{
+    payloadname: name,
+    weight: parseFloat(document.getElementById('pl-weight').value)||null,
+    type: document.getElementById('pl-type').value,
+    ownerorganization: document.getElementById('pl-owner').value,
+  });
+  toast('Payload added');
+  closeModal('modal-payload');
+  document.getElementById('pl-name').value = '';
+  renderPayloads();
+}
+
+// ══════════════════════════════════════════
+// LAUNCH SITES
+// ══════════════════════════════════════════
+async function renderLaunchSites() {
+  loading();
+  const sites = await api('/launchsites');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="sec-header">
+      <div class="sec-title">LAUNCH SITES <span>// ${sites.length} SITES</span></div>
+      <button class="btn btn-success" onclick="openModal('modal-site')">+ ADD SITE</button>
+    </div>
+    <div class="grid-3">
+      ${sites.map(s => `
+        <div class="card">
+          <div class="card-title">${s.SITENAME}</div>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <span style="font-size:1rem">📍</span>
+              <span style="font-family:var(--font-mono);font-size:.75rem">${s.CITY||'—'}, ${s.COUNTRY||'—'}</span>
+            </div>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <span style="font-size:1rem">🚀</span>
+              <span style="font-family:var(--font-mono);font-size:.75rem">${s.CAPACITY||'—'} launches/yr capacity</span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);margin-top:.25rem">${s.SITEID}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function submitSite() {
+  const name = document.getElementById('ls-name').value.trim();
+  if (!name) { toast('Site name required','err'); return; }
+  await api('/launchsites','POST',{
+    sitename: name,
+    city: document.getElementById('ls-city').value,
+    country: document.getElementById('ls-country').value,
+    capacity: parseInt(document.getElementById('ls-cap').value)||null,
+  });
+  toast('Launch site added');
+  closeModal('modal-site');
+  document.getElementById('ls-name').value = '';
+  renderLaunchSites();
+}
+
+// ── INIT ─────────────────────────────────
+renderDashboard();
+</script>
+</body>
+</html>
